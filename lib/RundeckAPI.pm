@@ -209,6 +209,8 @@ METHODS
 	my $json = '{some: value}';
 	$hashRef = $api->put(/api/27/endpoint_for_put, $json);
 	post is identical to put, and delete identical to get (items to be deleted are specified in th endpoint paramater)
+Returns a hash reference containing the data sent by Rundeck.
+See documentation for Rundeck's https://docs.rundeck.com/docs/api/rundeck-api.html and returned data
 
 
 =head1

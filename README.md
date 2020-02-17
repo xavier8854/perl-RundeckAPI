@@ -29,10 +29,5 @@ RundeckAPI - simplifies authenticate, connect, request a Rundeck instance via RE
 Returns a hash reference containing the data sent by Rundeck.
 See documentation for Rundeck's [API](https://docs.rundeck.com/docs/api/rundeck-api.html) and returned data
 
-$method is one of GET HEAD POST PUT DELETE.
-
-# TODO
-	In this version the package is only aware of Rundeck endpoints which doesn't require POSTing data. Be patient :-)
-
 # AUTHOR
 	Xavier Humbert <xavier-at-xavierhumbert-dot-net>

@@ -155,6 +155,8 @@ sub post(){
 
 	$self->{'client'}->addHeader ("Content-Type", 'application/json');
 	$self->{'client'}->POST($endpoint, $json);
+	$rc = $self->{'client'}->responseCode ();
+	$self->{'result'}->{'httpstatus'} = $rc;
 	if ($rc != 200) {
 		$self->{'result'}->{'requstatus'} = 'CRIT';
 		$self->{'result'}->{'httpstatus'} = $rc;
@@ -177,6 +179,8 @@ sub put(){
 
 	$self->{'client'}->addHeader ("Content-Type", 'application/json');
 	$self->{'client'}->PUT($endpoint, $json);
+	$rc = $self->{'client'}->responseCode ();
+	$self->{'result'}->{'httpstatus'} = $rc;
 	if ($rc != 200) {
 		$self->{'result'}->{'requstatus'} = 'CRIT';
 		$self->{'result'}->{'httpstatus'} = $rc;

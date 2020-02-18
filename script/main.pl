@@ -54,7 +54,7 @@ my $api = RundeckAPI->new(
  		'proxy'		=> "http://proxy.your.company:3128",
 );
 
-my $hashRef = $api->get('GET', "/api/27/system/info");
+my $hashRef = $api->get("/api/27/system/info");
 
 print Dumper($hashRef);
 

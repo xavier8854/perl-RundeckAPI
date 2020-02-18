@@ -133,6 +133,7 @@ sub get (){
 	}
 # handle case where test is "ping", response is "pong" in plain text
 	my $responseContent = $self->{'client'}->responseContent();
+	print Dumper($responseContent) if $self->{'debug'};
 	if ($endpoint =~ /ping/) {
 		$self->{'result'}->{'requstatus'} = 'CRIT';
 		$self->{'result'}->{'requstatus'} = 'OK' if ($responseContent =~ /pong/);
@@ -160,6 +161,7 @@ sub post(){
 		return $self->{'result'};
 	}
 	my $responseContent = $self->{'client'}->responseContent();
+	print Dumper($responseContent) if $self->{'debug'};
 	my $responseHashRef = decode_json($responseContent);
 	$self->{'result'} = $responseHashRef;
 	$self->{'result'}->{'requstatus'} = 'OK';
@@ -181,6 +183,7 @@ sub put(){
 		return $self->{'result'};
 	}
 	my $responseContent = $self->{'client'}->responseContent();
+	print Dumper($responseContent) if $self->{'debug'};
 	my $responseHashRef = decode_json($responseContent);
 	$self->{'result'} = $responseHashRef;
 	$self->{'result'}->{'requstatus'} = 'OK';
@@ -202,6 +205,7 @@ sub delete () {
 		return $self->{'result'};
 	}
 	my $responseContent = $self->{'client'}->responseContent();
+	print Dumper($responseContent) if $self->{'debug'};
 	my $responseHashRef = decode_json($responseContent);
 	$self->{'result'} = $responseHashRef;
 	$self->{'result'}->{'requstatus'} = 'OK';

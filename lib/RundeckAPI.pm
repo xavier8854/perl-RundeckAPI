@@ -171,16 +171,42 @@ sub put(){
 	my $self = shift;
 	my $endpoint = shift;
 	my $json = shift;
-	# Identical to POST
-	return $self->post($endpoint, $json);
+	my $rc = 0;
+
+	$self->{'client'}->addHeader ("Content-Type", 'application/json');
+	$self->{'client'}->PUT($endpoint, $json);
+	if ($rc != 200) {
+		$self->{'result'}->{'requstatus'} = 'CRIT';
+		$self->{'result'}->{'httpstatus'} = $rc;
+		return $self->{'result'};
+	}
+	my $responseContent = $self->{'client'}->responseContent();
+	my $responseHashRef = decode_json($responseContent);
+	$self->{'result'} = $responseHashRef;
+	$self->{'result'}->{'requstatus'} = 'OK';
+	$self->{'result'}->{'httpstatus'} = $rc;
+	return $self->{'result'};
 }
 
 sub delete () {
 	my $self = shift;
 	my $endpoint = shift;
-	# Identical to GET
-	return $self->get($endpoint);
+	my $rc = 0;
 
+	$self->{'client'}->DELETE($endpoint);
+	$rc = $self->{'client'}->responseCode ();
+	$self->{'result'}->{'httpstatus'} = $rc;
+	if ($rc != 200) {
+		$self->{'result'}->{'requstatus'} = 'CRIT';
+		$self->{'result'}->{'httpstatus'} = $rc;
+		return $self->{'result'};
+	}
+	my $responseContent = $self->{'client'}->responseContent();
+	my $responseHashRef = decode_json($responseContent);
+	$self->{'result'} = $responseHashRef;
+	$self->{'result'}->{'requstatus'} = 'OK';
+	$self->{'result'}->{'httpstatus'} = $rc;
+	return $self->{'result'};
 }
 
 1;

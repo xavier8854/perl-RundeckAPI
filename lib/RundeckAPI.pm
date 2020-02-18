@@ -120,13 +120,14 @@ sub new {
 sub get (){
 	my $self = shift;
 	my $endpoint = shift;
+	my $responseHashRef = ();
 	my $rc = 0;
 
 	$self->{'client'}->GET($endpoint);
 	$rc = $self->{'client'}->responseCode ();
 	$self->{'result'}->{'httpstatus'} = $rc;
 # if request did'nt succed, get outta there
-	if ($rc != 200) {
+	if ($rc-$rc%100 != 200) {
 		$self->{'result'}->{'requstatus'} = 'CRIT';
 		$self->{'result'}->{'httpstatus'} = $rc;
 		return $self->{'result'};
@@ -140,7 +141,7 @@ sub get (){
 		return $self->{'result'};
 	}
 # Last case : we've got a nice JSON
-	my $responseHashRef = decode_json($responseContent);
+	$responseHashRef = decode_json($responseContent) if $responseContent ne '';
 	$self->{'result'} = $responseHashRef;
 	$self->{'result'}->{'requstatus'} = 'OK';
 	$self->{'result'}->{'httpstatus'} = $rc;
@@ -151,20 +152,21 @@ sub post(){
 	my $self = shift;
 	my $endpoint = shift;
 	my $json = shift;
+	my $responseHashRef = ();
 	my $rc = 0;
 
 	$self->{'client'}->addHeader ("Content-Type", 'application/json');
 	$self->{'client'}->POST($endpoint, $json);
 	$rc = $self->{'client'}->responseCode ();
 	$self->{'result'}->{'httpstatus'} = $rc;
-	if ($rc != 200) {
+	if ($rc-$rc%100 != 200) {
 		$self->{'result'}->{'requstatus'} = 'CRIT';
 		$self->{'result'}->{'httpstatus'} = $rc;
 		return $self->{'result'};
 	}
 	my $responseContent = $self->{'client'}->responseContent();
 	print Dumper($responseContent) if $self->{'debug'};
-	my $responseHashRef = decode_json($responseContent);
+	$responseHashRef = decode_json($responseContent) if $responseContent ne '';
 	$self->{'result'} = $responseHashRef;
 	$self->{'result'}->{'requstatus'} = 'OK';
 	$self->{'result'}->{'httpstatus'} = $rc;
@@ -175,20 +177,21 @@ sub put(){
 	my $self = shift;
 	my $endpoint = shift;
 	my $json = shift;
+	my $responseHashRef = ();
 	my $rc = 0;
 
 	$self->{'client'}->addHeader ("Content-Type", 'application/json');
 	$self->{'client'}->PUT($endpoint, $json);
 	$rc = $self->{'client'}->responseCode ();
 	$self->{'result'}->{'httpstatus'} = $rc;
-	if ($rc != 200) {
+	if ($rc-$rc%100 != 200) {
 		$self->{'result'}->{'requstatus'} = 'CRIT';
 		$self->{'result'}->{'httpstatus'} = $rc;
 		return $self->{'result'};
 	}
 	my $responseContent = $self->{'client'}->responseContent();
 	print Dumper($responseContent) if $self->{'debug'};
-	my $responseHashRef = decode_json($responseContent);
+	$responseHashRef = decode_json($responseContent) if $responseContent ne '';
 	$self->{'result'} = $responseHashRef;
 	$self->{'result'}->{'requstatus'} = 'OK';
 	$self->{'result'}->{'httpstatus'} = $rc;
@@ -198,19 +201,20 @@ sub put(){
 sub delete () {
 	my $self = shift;
 	my $endpoint = shift;
+	my $responseHashRef = ();
 	my $rc = 0;
 
 	$self->{'client'}->DELETE($endpoint);
 	$rc = $self->{'client'}->responseCode ();
 	$self->{'result'}->{'httpstatus'} = $rc;
-	if ($rc != 200) {
+	if ($rc-$rc%100 != 200) {
 		$self->{'result'}->{'requstatus'} = 'CRIT';
 		$self->{'result'}->{'httpstatus'} = $rc;
 		return $self->{'result'};
 	}
 	my $responseContent = $self->{'client'}->responseContent();
 	print Dumper($responseContent) if $self->{'debug'};
-	my $responseHashRef = decode_json($responseContent);
+	$responseHashRef = decode_json($responseContent) if $responseContent ne '';
 	$self->{'result'} = $responseHashRef;
 	$self->{'result'}->{'requstatus'} = 'OK';
 	$self->{'result'}->{'httpstatus'} = $rc;

@@ -33,6 +33,7 @@ use LWP::UserAgent;
 use Data::Dumper;
 use HTTP::Cookies;
 use REST::Client;
+use Scalar::Util qw(reftype);
 use JSON;
 
 use Exporter qw(import);
@@ -120,7 +121,8 @@ sub new {
 sub get (){
 	my $self = shift;
 	my $endpoint = shift;
-	my $responseHashRef = ();
+	my $responseRef = ();
+	my $responsehash;
 	my $rc = 0;
 
 	$self->{'client'}->GET($endpoint);
@@ -128,22 +130,35 @@ sub get (){
 	$self->{'result'}->{'httpstatus'} = $rc;
 # if request did'nt succed, get outta there
 	if ($rc-$rc%100 != 200) {
-		$self->{'result'}->{'requstatus'} = 'CRIT';
+		$self->{'result'}->{'reqstatus'} = 'CRIT';
 		$self->{'result'}->{'httpstatus'} = $rc;
 		return $self->{'result'};
 	}
-# handle case where test is "ping", response is "pong" in plain text
 	my $responseContent = $self->{'client'}->responseContent();
-	print Dumper($responseContent) if $self->{'debug'};
+	$self->logD($responseContent);
+# handle case where test is "ping", response is "pong" in plain text, not a hashref
 	if ($endpoint =~ /ping/) {
-		$self->{'result'}->{'requstatus'} = 'CRIT';
-		$self->{'result'}->{'requstatus'} = 'OK' if ($responseContent =~ /pong/);
+		$self->{'result'}->{'reqstatus'} = 'CRIT';
+		$self->{'result'}->{'reqstatus'} = 'OK' if ($responseContent =~ /pong/);
 		return $self->{'result'};
 	}
 # Last case : we've got a nice JSON
-	$responseHashRef = decode_json($responseContent) if $responseContent ne '';
-	$self->{'result'} = $responseHashRef;
-	$self->{'result'}->{'requstatus'} = 'OK';
+	$responseRef = decode_json($responseContent) if $responseContent ne '';
+
+	my $reftype = reftype($responseRef);
+	if (not defined $reftype) {
+		$self->bomb("Can't decode undef type");
+	} elsif ($reftype eq 'ARRAY') {
+		$self->{'result'}->{'arraycount'} = $#$responseRef+1;
+		for (my $i = 0; $i <= $#$responseRef; $i++) {
+			$self->{'result'}->{$i} = $responseRef->[$i];
+		}
+	} elsif ($reftype eq 'SCALAR') {
+		$self->bomb("Can't decode scalar type");
+	} elsif ($reftype eq 'HASH') {
+		$self->{'result'} = $responseRef;
+	}
+	$self->{'result'}->{'reqstatus'} = 'OK';
 	$self->{'result'}->{'httpstatus'} = $rc;
 	return $self->{'result'};
 }
@@ -152,7 +167,7 @@ sub post(){
 	my $self = shift;
 	my $endpoint = shift;
 	my $json = shift;
-	my $responseHashRef = ();
+	my $responseRef = ();
 	my $rc = 0;
 
 	$self->{'client'}->addHeader ("Content-Type", 'application/json');
@@ -160,15 +175,15 @@ sub post(){
 	$rc = $self->{'client'}->responseCode ();
 	$self->{'result'}->{'httpstatus'} = $rc;
 	if ($rc-$rc%100 != 200) {
-		$self->{'result'}->{'requstatus'} = 'CRIT';
+		$self->{'result'}->{'reqstatus'} = 'CRIT';
 		$self->{'result'}->{'httpstatus'} = $rc;
 		return $self->{'result'};
 	}
 	my $responseContent = $self->{'client'}->responseContent();
-	print Dumper($responseContent) if $self->{'debug'};
-	$responseHashRef = decode_json($responseContent) if $responseContent ne '';
-	$self->{'result'} = $responseHashRef;
-	$self->{'result'}->{'requstatus'} = 'OK';
+	$self->logD($responseContent);
+	$responseRef = decode_json($responseContent) if $responseContent ne '';
+	$self->{'result'} = $responseRef;
+	$self->{'result'}->{'reqstatus'} = 'OK';
 	$self->{'result'}->{'httpstatus'} = $rc;
 	return $self->{'result'};
 }
@@ -177,7 +192,7 @@ sub put(){
 	my $self = shift;
 	my $endpoint = shift;
 	my $json = shift;
-	my $responseHashRef = ();
+	my $responseRef = ();
 	my $rc = 0;
 
 	$self->{'client'}->addHeader ("Content-Type", 'application/json');
@@ -185,15 +200,15 @@ sub put(){
 	$rc = $self->{'client'}->responseCode ();
 	$self->{'result'}->{'httpstatus'} = $rc;
 	if ($rc-$rc%100 != 200) {
-		$self->{'result'}->{'requstatus'} = 'CRIT';
+		$self->{'result'}->{'reqstatus'} = 'CRIT';
 		$self->{'result'}->{'httpstatus'} = $rc;
 		return $self->{'result'};
 	}
 	my $responseContent = $self->{'client'}->responseContent();
-	print Dumper($responseContent) if $self->{'debug'};
-	$responseHashRef = decode_json($responseContent) if $responseContent ne '';
-	$self->{'result'} = $responseHashRef;
-	$self->{'result'}->{'requstatus'} = 'OK';
+	$self->logD($responseContent);
+	$responseRef = decode_json($responseContent) if $responseContent ne '';
+	$self->{'result'} = $responseRef;
+	$self->{'result'}->{'reqstatus'} = 'OK';
 	$self->{'result'}->{'httpstatus'} = $rc;
 	return $self->{'result'};
 }
@@ -201,26 +216,38 @@ sub put(){
 sub delete () {
 	my $self = shift;
 	my $endpoint = shift;
-	my $responseHashRef = ();
+	my $responseRef = ();
 	my $rc = 0;
 
 	$self->{'client'}->DELETE($endpoint);
 	$rc = $self->{'client'}->responseCode ();
 	$self->{'result'}->{'httpstatus'} = $rc;
 	if ($rc-$rc%100 != 200) {
-		$self->{'result'}->{'requstatus'} = 'CRIT';
+		$self->{'result'}->{'reqstatus'} = 'CRIT';
 		$self->{'result'}->{'httpstatus'} = $rc;
 		return $self->{'result'};
 	}
 	my $responseContent = $self->{'client'}->responseContent();
-	print Dumper($responseContent) if $self->{'debug'};
-	$responseHashRef = decode_json($responseContent) if $responseContent ne '';
-	$self->{'result'} = $responseHashRef;
-	$self->{'result'}->{'requstatus'} = 'OK';
+	$self->logD($responseContent);
+	$responseRef = decode_json($responseContent) if $responseContent ne '';
+	$self->{'result'} = $responseRef;
+	$self->{'result'}->{'reqstatus'} = 'OK';
 	$self->{'result'}->{'httpstatus'} = $rc;
 	return $self->{'result'};
 }
 
+sub logD() {
+	my $self = shift;
+	my $object = shift;
+	print Dumper ($object)if $self->{'debug'};
+}
+
+sub bomb() {
+	my $self = shift;
+	my $msg = shift;
+	$msg .= "\nReport this to xavier\@xavierhumbert.net";
+	die $msg;
+}
 1;
 
 =head1

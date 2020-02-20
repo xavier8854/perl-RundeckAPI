@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 ###########################################################################
-# $Id: main.pl, v0.9 r1 04/02/2020 14:31:53 CET XH Exp $
+# $Id: main.pl, v1.0 r1 04/02/2020 14:31:53 CET XH Exp $
 #
 # Copyright 2020 Xavier Humbert <xavier.humbert@ac-nancy-metz.fr>
 #
@@ -24,7 +24,6 @@
 ###########################################################################
 
 use strict;
-# use Devel::NYTProf;
 use Data::Dumper;
 use lib '../lib';
 use RundeckAPI;
@@ -59,13 +58,6 @@ my $hashRef = $api->get("/api/27/system/info");
 print Dumper($hashRef);
 
 exit ($rc);
-
-
-
-
-
-
-
 
 
 =pod

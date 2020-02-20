@@ -135,7 +135,7 @@ sub get (){
 		return $self->{'result'};
 	}
 	my $responseContent = $self->{'client'}->responseContent();
-	$self->logD($responseContent);
+	$self->_logD($responseContent);
 # handle case where test is "ping", response is "pong" in plain text, not a json
 	if ($endpoint =~ /ping/) {
 		$self->{'result'}->{'reqstatus'} = 'CRIT';
@@ -147,14 +147,14 @@ sub get (){
 
 	my $reftype = reftype($responseRef);
 	if (not defined $reftype) {
-		$self->bomb("Can't decode undef type");
+		$self->_bomb("Can't decode undef type");
 	} elsif ($reftype eq 'ARRAY') {
 		$self->{'result'}->{'arraycount'} = $#$responseRef+1;
 		for (my $i = 0; $i <= $#$responseRef; $i++) {
 			$self->{'result'}->{$i} = $responseRef->[$i];
 		}
 	} elsif ($reftype eq 'SCALAR') {
-		$self->bomb("Can't decode scalar type");
+		$self->_bomb("Can't decode scalar type");
 	} elsif ($reftype eq 'HASH') {
 		$self->{'result'} = $responseRef;
 	}
@@ -180,7 +180,7 @@ sub post(){
 		return $self->{'result'};
 	}
 	my $responseContent = $self->{'client'}->responseContent();
-	$self->logD($responseContent);
+	$self->_logD($responseContent);
 	$responseRef = decode_json($responseContent) if $responseContent ne '';
 	$self->{'result'} = $responseRef;
 	$self->{'result'}->{'reqstatus'} = 'OK';
@@ -205,7 +205,7 @@ sub put(){
 		return $self->{'result'};
 	}
 	my $responseContent = $self->{'client'}->responseContent();
-	$self->logD($responseContent);
+	$self->_logD($responseContent);
 	$responseRef = decode_json($responseContent) if $responseContent ne '';
 	$self->{'result'} = $responseRef;
 	$self->{'result'}->{'reqstatus'} = 'OK';
@@ -228,7 +228,7 @@ sub delete () {
 		return $self->{'result'};
 	}
 	my $responseContent = $self->{'client'}->responseContent();
-	$self->logD($responseContent);
+	$self->_logD($responseContent);
 	$responseRef = decode_json($responseContent) if $responseContent ne '';
 	$self->{'result'} = $responseRef;
 	$self->{'result'}->{'reqstatus'} = 'OK';
@@ -236,13 +236,13 @@ sub delete () {
 	return $self->{'result'};
 }
 
-sub logD() {
+sub _logD() {
 	my $self = shift;
 	my $object = shift;
 	print Dumper ($object) if $self->{'debug'};
 }
 
-sub bomb() {
+sub _bomb() {
 	my $self = shift;
 	my $msg = shift;
 	$msg .= "\nReport this to xavier\@xavierhumbert.net";
@@ -250,9 +250,11 @@ sub bomb() {
 }
 1;
 
-=head1
-NAME
-RundeckAPI - simplifies authenticate, connect, request a Rundeck instance via REST API
+=pod
+
+=head1 NAME
+
+RundeckAPI - simplifies authenticate, connect, queries to a Rundeck instance via REST API
 
 =head1 SYNOPSIS
 	use RundeckAPI;
@@ -265,21 +267,41 @@ RundeckAPI - simplifies authenticate, connect, request a Rundeck instance via RE
 		'debug'		=> 1,
  		'proxy'		=> "http://proxy.mycompany.com/",
 	);
-
-=head1
-METHODS
-=head2
-	# connect to Rundeck
 	my $hashRef = $api->get("/api/27/system/info");
 	my $json = '{some: value}';
 	$hashRef = $api->put(/api/27/endpoint_for_put, $json);
-	post is identical to put, and delete identical to get (items to be deleted are specified in th endpoint paramater)
-Returns a hash reference containing the data sent by Rundeck.
-See documentation for Rundeck's https://docs.rundeck.com/docs/api/rundeck-api.html and returned data
 
+=head1 METHODS
 
-=head1
-AUTHOR
+=over 12
+
+=item C<new>
+
+Returns an object authenticated and connected to a Rundeck Instance
+
+=item C<get>
+
+Sends a GET query. Request one argument, the enpoint to the API. Returns a hash reference
+
+=item C<post>
+
+Sends a POST query. Request two arguments, the enpoint to the API an the data in json format. Returns a hash reference
+
+=item C<put>
+
+Sends a PUT query. Similar to post
+
+=item C<delete>
+
+Sends a DELETE query. Similar to get
+
+=back
+
+=head1 SEE ALSO
+
+See documentation for Rundeck's API https://docs.rundeck.com/docs/api/rundeck-api.html and returned data
+
+=head1 AUTHOR
 	Xavier Humbert <xavier.humbert-at-ac-nancy-metz-dot-fr>
 
 =cut

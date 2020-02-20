@@ -6,15 +6,16 @@ use ExtUtils::MakeMaker;
  	NAME			=> 'RundeckAPI',
 	AUTHOR			=> q{Xavier Humbert <xavier.humbert@ac-nancy-metz.fr>},
 	VERSION_FROM	=> 'lib/RundeckAPI.pm',
-	ABSTRACT		=> 'Talk to Rundeck\'s REST API',
+	ABSTRACT		=> 'Queries Rundeck\'s REST API',
 	LICENSE			=> 'GPL',
 	PL_FILES		=> {'script/main.pl'},
 	PREREQ_PM => {
-		'File::Basename'	=> 2.77,
-		'LWP::UserAgent'	=> 5.833,
-		'HTTP::Cookies'		=> 5.833,
-		'REST::Client'		=> 272,
-		'JSON'				=> 2.15
+		'File::Basename'		=> 2.77,
+		'LWP::UserAgent'		=> 5.833,
+		'HTTP::Cookies'			=> 5.833,
+		'REST::Client'			=> 272,
+		'Scalar::List::Utils'	=> 1.27,
+		'JSON'					=> 2.15
 	},
 	TEST_REQUIRES => {
 			'Test::More'		=> 0.98,

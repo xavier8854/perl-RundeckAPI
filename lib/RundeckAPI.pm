@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 ###########################################################################
-# $Id: rundeckAPI.pm, v0.9 r1 04/02/2020 13:58:58 CET XH Exp $
+# $Id: rundeckAPI.pm, v1.0 r1 04/02/2020 13:58:58 CET XH Exp $
 #
 # Copyright 2020 Xavier Humbert <xavier.humbert@ac-nancy-metz.fr>
 #
@@ -136,7 +136,7 @@ sub get (){
 	}
 	my $responseContent = $self->{'client'}->responseContent();
 	$self->logD($responseContent);
-# handle case where test is "ping", response is "pong" in plain text, not a hashref
+# handle case where test is "ping", response is "pong" in plain text, not a json
 	if ($endpoint =~ /ping/) {
 		$self->{'result'}->{'reqstatus'} = 'CRIT';
 		$self->{'result'}->{'reqstatus'} = 'OK' if ($responseContent =~ /pong/);
@@ -239,7 +239,7 @@ sub delete () {
 sub logD() {
 	my $self = shift;
 	my $object = shift;
-	print Dumper ($object)if $self->{'debug'};
+	print Dumper ($object) if $self->{'debug'};
 }
 
 sub bomb() {

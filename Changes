@@ -3,3 +3,6 @@
 
 20200220
 	Nice pod to make "make test" happy
+
+2020227
+	Add a dirty test for checking failed auth

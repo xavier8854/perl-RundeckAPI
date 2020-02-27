@@ -101,6 +101,12 @@ sub new {
 	);
 	$rc = $client->responseCode ();
 	my %hash = ();
+
+## Dirty job, but Rundeck doent follow the REST norm, returning 200 even if auth fails
+## Anyway, this is safe, since if string not found it will fail at get/put/whatever time
+	if (index($client->{'_res'}{'_content'}, 'alert alert-danger') != -1) {
+		$rc = 401;
+	}
 	if ($rc != 200) {
 		%hash = ('reqstatus' => 'UNKN');
 	} else {

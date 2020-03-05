@@ -46,8 +46,7 @@ our @EXPORT_OK = qw(get post put delete);
 ## CONSTANTS
 #####
 our $TIMEOUT = 10;
-our $VERSION = "1.1";
-our $REVISION = "b1";
+our $VERSION = "1.1b2";
 #####
 ## VARIABLES
 #####

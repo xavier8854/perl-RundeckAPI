@@ -111,7 +111,7 @@ sub new {
 				$rc = 403;
 			}
 			else {
-				$rc = 403;
+				$rc = 200;
 			}
 		}
 	} else {

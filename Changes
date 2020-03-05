@@ -6,3 +6,6 @@
 
 2020227
 	Add a dirty test for checking failed auth
+
+20200302
+	Add Token authentication

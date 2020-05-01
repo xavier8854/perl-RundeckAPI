@@ -40,8 +40,6 @@ use Exporter qw(import);
 
 our @EXPORT_OK = qw(get post put delete);
 
-# use Devel::NYTProf;
-
 #####
 ## CONSTANTS
 #####
@@ -148,7 +146,7 @@ sub new {
 sub get (){
 	my $self = shift;
 	my $endpoint = shift;
-	my $responseJSON = ();
+
 	my $responsehash = ();
 	my $rc = 0;
 
@@ -167,24 +165,7 @@ sub get (){
 			$responsehash->{'reqstatus'} = $responseContent =~ /pong/ ? 'OK' : 'CRIT';
 			return dclone ($responsehash);
 		}
-		$responseJSON = decode_json($responseContent) if $responseContent ne '';
-
-		my $reftype = reftype($responseJSON);
-		if (not defined $reftype) {
-			$self->_bomb("Can't decode undef type");
-		} elsif ($reftype eq 'ARRAY') {
-
-			$responsehash->{'arraycount'} = $#$responseJSON+1;
-			for (my $i = 0; $i <= $#$responseJSON; $i++) {
-				$responsehash->{$i} = $responseJSON->[$i];
-			}
-		} elsif ($reftype eq 'SCALAR') {
-			$self->_bomb("Can't decode scalar type");
-		} elsif ($reftype eq 'HASH') {
-			$responsehash = dclone ($responseJSON);
-		}
-		$responsehash->{'reqstatus'} = 'OK';
-		$responsehash->{'httpstatus'} = $rc;
+		$responsehash = $self->_handleResponse($responseContent);
 	}
 	return dclone ($responsehash);
 }
@@ -193,7 +174,7 @@ sub post(){
 	my $self = shift;
 	my $endpoint = shift;
 	my $json = shift;
-	my $responseJSON = ();
+
 	my $responsehash = ();
 	my $rc = 0;
 
@@ -206,22 +187,9 @@ sub post(){
 		$responsehash->{'reqstatus'} = 'CRIT';
 		$responsehash->{'httpstatus'} = $rc;
 	} else {
-		my $reftype = reftype($responseJSON);
-		if (not defined $reftype) {
-			$self->_bomb("Can't decode undef type");
-		} elsif ($reftype eq 'ARRAY') {
-
-			$responsehash->{'arraycount'} = $#$responseJSON+1;
-			for (my $i = 0; $i <= $#$responseJSON; $i++) {
-				$responsehash->{$i} = $responseJSON->[$i];
-			}
-		} elsif ($reftype eq 'SCALAR') {
-			$self->_bomb("Can't decode scalar type");
-		} elsif ($reftype eq 'HASH') {
-			$responsehash = dclone ($responseJSON);
-		}
-		$responsehash->{'reqstatus'} = 'OK';
-		$responsehash->{'httpstatus'} = $rc;
+		my $responseContent = $self->{'client'}->responseContent();
+		$self->_logD($responseContent);
+		$responsehash = $self->_handleResponse($responseContent);
 	}
 	return dclone ($responsehash);
 }
@@ -230,7 +198,7 @@ sub put(){
 	my $self = shift;
 	my $endpoint = shift;
 	my $json = shift;
-	my $responseJSON = ();
+
 	my $responsehash = ();
 	my $rc = 0;
 
@@ -243,22 +211,9 @@ sub put(){
 		$responsehash->{'reqstatus'} = 'CRIT';
 		$responsehash->{'httpstatus'} = $rc;
 	} else {
-		my $reftype = reftype($responseJSON);
-		if (not defined $reftype) {
-			$self->_bomb("Can't decode undef type");
-		} elsif ($reftype eq 'ARRAY') {
-
-			$responsehash->{'arraycount'} = $#$responseJSON+1;
-			for (my $i = 0; $i <= $#$responseJSON; $i++) {
-				$responsehash->{$i} = $responseJSON->[$i];
-			}
-		} elsif ($reftype eq 'SCALAR') {
-			$self->_bomb("Can't decode scalar type");
-		} elsif ($reftype eq 'HASH') {
-			$responsehash = dclone ($responseJSON);
-		}
-		$responsehash->{'reqstatus'} = 'OK';
-		$responsehash->{'httpstatus'} = $rc;
+		my $responseContent = $self->{'client'}->responseContent();
+		$self->_logD($responseContent);
+		$responsehash = $self->_handleResponse($responseContent);
 	}
 	return dclone ($responsehash);
 }
@@ -266,7 +221,7 @@ sub put(){
 sub delete () {
 	my $self = shift;
 	my $endpoint = shift;
-	my $responseJSON = ();
+
 	my $responsehash = ();
 	my $rc = 0;
 
@@ -280,37 +235,50 @@ sub delete () {
 	} else {
 		my $responseContent = $self->{'client'}->responseContent();
 		$self->_logD($responseContent);
-		$responseJSON = decode_json($responseContent) if $responseContent ne '';
-
-		my $reftype = reftype($responseJSON);
-		if (not defined $reftype) {
-			$self->_bomb("Can't decode undef type");
-		} elsif ($reftype eq 'ARRAY') {
-
-			$responsehash->{'arraycount'} = $#$responseJSON+1;
-			for (my $i = 0; $i <= $#$responseJSON; $i++) {
-				$responsehash->{$i} = $responseJSON->[$i];
-			}
-		} elsif ($reftype eq 'SCALAR') {
-			$self->_bomb("Can't decode scalar type");
-		} elsif ($reftype eq 'HASH') {
-			$responsehash = dclone ($responseJSON);
-		}
-		$responsehash->{'reqstatus'} = 'OK';
-		$responsehash->{'httpstatus'} = $rc;
+		$responsehash = $self->_handleResponse($responseContent);
 	}
 	return dclone ($responsehash);
+}
+
+sub _handleResponse () {
+	my $self = shift;
+	my $responseContent = shift;
+
+	my $responseJSON = ();
+	my $responsehash = ();
+	my $rc = 0;
+
+	$responseJSON = decode_json($responseContent) if $responseContent ne '';
+	my $reftype = reftype($responseJSON);
+	if (not defined $reftype) {
+		$self->_bomb("Can't decode undef type");
+	} elsif ($reftype eq 'ARRAY') {
+
+		$responsehash->{'arraycount'} = $#$responseJSON+1;
+		for (my $i = 0; $i <= $#$responseJSON; $i++) {
+			$responsehash->{$i} = $responseJSON->[$i];
+		}
+	} elsif ($reftype eq 'SCALAR') {
+		$self->_bomb("Can't decode scalar type");
+	} elsif ($reftype eq 'HASH') {
+		$responsehash = dclone ($responseJSON);
+	}
+	$responsehash->{'reqstatus'} = 'OK';
+	$responsehash->{'httpstatus'} = $rc;
+	return $responsehash;
 }
 
 sub _logD() {
 	my $self = shift;
 	my $object = shift;
+
 	print Dumper ($object) if $self->{'debug'};
 }
 
 sub _bomb() {
 	my $self = shift;
 	my $msg = shift;
+
 	$msg .= "\nReport this to xavier.humbert\@ac-nancy-metz.fr";
 	die $msg;
 }

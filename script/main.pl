@@ -26,9 +26,7 @@
 use strict;
 use diagnostics;
 use Data::Dumper;
-use lib "../lib";
 use RundeckAPI;
-use Storable qw(dclone);
 
 #####
 ## PROTOS

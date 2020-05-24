@@ -20,6 +20,7 @@ instance via REST API
     my $hashRef = $api->get("/api/27/system/info");
     my $json = '{some: value}';
     $hashRef = $api->put(/api/27/endpoint_for_put, $json);
+
 # METHODS
   "new"         Returns an object authenticated and connected to a Rundeck
                 Instance

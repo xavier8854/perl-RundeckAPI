@@ -63,6 +63,7 @@ sub new {
 		'password'	=> $args{'password'},
 		'debug'		=> $args{'debug'}, || 0
 		'verbose'	=> $args{'verbose'} || 0,
+		'result'	=> undef,
 	};
 # create and store a cookie jar
 	my $cookie_jar = HTTP::Cookies->new(

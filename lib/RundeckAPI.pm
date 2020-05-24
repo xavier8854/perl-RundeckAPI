@@ -38,13 +38,13 @@ use JSON;
 use Storable qw(dclone);
 use Exporter qw(import);
 
-our @EXPORT_OK = qw(get post put delete);
+our @EXPORT_OK = qw(get post put delete postFile putFile);
 
 #####
 ## CONSTANTS
 #####
 our $TIMEOUT = 10;
-our $VERSION = "1.2.1";
+our $VERSION = "1.2.3";
 #####
 ## VARIABLES
 #####
@@ -61,8 +61,8 @@ sub new {
 		'login'		=> $args{'login'},
 		'token'		=> $args{'token'},
 		'password'	=> $args{'password'},
-		'debug'		=> $args{'debug'},
-		'result'	=> undef,
+		'debug'		=> $args{'debug'}, || 0
+		'verbose'	=> $args{'verbose'} || 0,
 	};
 # create and store a cookie jar
 	my $cookie_jar = HTTP::Cookies->new(
@@ -134,7 +134,8 @@ sub new {
 	$self->{'result'}->{'httpstatus'} = $rc;
 
 # done, bless object and return it
-	bless ($self, $class);
+	bless ($self, $class)
+	$self->_logV1 ("Connected to $self->{'url'}");
 	$self->_logD($self);
 	return $self;
 }
@@ -143,7 +144,7 @@ sub new {
 ## METHODS
 #####
 
-sub get (){
+sub get (){		# endpoint
 	my $self = shift;
 	my $endpoint = shift;
 
@@ -159,18 +160,17 @@ sub get (){
 		$responsehash->{'httpstatus'} = $rc;
 	} else {
 		my $responseContent = $self->{'client'}->responseContent();
-		$self->_logD($responseContent);
 	# handle special case where test is "ping", response is "pong" in plain text, not a json
 		if ($endpoint =~ /ping/) {
 			$responsehash->{'reqstatus'} = $responseContent =~ /pong/ ? 'OK' : 'CRIT';
 			return dclone ($responsehash);
 		}
-		$responsehash = $self->_handleResponse($responseContent);
+		$responsehash = $self->_handleResponse($rc, $responseContent);
 	}
 	return dclone ($responsehash);
 }
 
-sub post(){
+sub post(){		# endpoint, json
 	my $self = shift;
 	my $endpoint = shift;
 	my $json = shift;
@@ -188,13 +188,12 @@ sub post(){
 		$responsehash->{'httpstatus'} = $rc;
 	} else {
 		my $responseContent = $self->{'client'}->responseContent();
-		$self->_logD($responseContent);
-		$responsehash = $self->_handleResponse($responseContent);
+		$responsehash = $self->_handleResponse($rc, $responseContent);
 	}
 	return dclone ($responsehash);
 }
 
-sub put(){
+sub put(){		# endpoint, json
 	my $self = shift;
 	my $endpoint = shift;
 	my $json = shift;
@@ -212,13 +211,12 @@ sub put(){
 		$responsehash->{'httpstatus'} = $rc;
 	} else {
 		my $responseContent = $self->{'client'}->responseContent();
-		$self->_logD($responseContent);
-		$responsehash = $self->_handleResponse($responseContent);
+		$responsehash = $self->_handleResponse($rc, $responseContent);
 	}
 	return dclone ($responsehash);
 }
 
-sub delete () {
+sub delete () {		# endpoint
 	my $self = shift;
 	my $endpoint = shift;
 
@@ -234,20 +232,71 @@ sub delete () {
 		$responsehash->{'httpstatus'} = $rc;
 	} else {
 		my $responseContent = $self->{'client'}->responseContent();
-		$self->_logD($responseContent);
-		$responsehash = $self->_handleResponse($responseContent);
+		$responsehash = $self->_handleResponse($rc, $responseContent);
 	}
 	return dclone ($responsehash);
 }
 
+sub postFile() {		# endpoint, mimetype, data
+	my $self = shift;
+	my $endpoint = shift;
+	my $mimetype = shift;
+	my $data = shift;
+
+	my $responsehash = ();
+	my $rc = 0;
+
+	$self->{'client'}->addHeader ("Content-Type", $mimetype);
+	$self->{'client'}->POST($endpoint, $data);
+	$rc = $self->{'client'}->responseCode ();
+	$self->{'result'}->{'httpstatus'} = $rc;
+
+	if ($rc-$rc%100 != 200) {
+		$responsehash->{'reqstatus'} = 'CRIT';
+		$responsehash->{'httpstatus'} = $rc;
+	} else {
+		my $responseContent = $self->{'client'}->responseContent();
+		$responsehash = $self->_handleResponse($rc, $responseContent);
+	}
+	return dclone ($responsehash);
+
+}
+
+sub putFile() {		# endpoint, mimetype, data
+	my $self = shift;
+	my $endpoint = shift;
+	my $mimetype = shift;
+	my $data = shift;
+
+	my $responsehash = ();
+	my $rc = 0;
+
+	$self->{'client'}->addHeader ("Content-Type", $mimetype);
+	$self->{'client'}->PUT($endpoint, $data);
+	$rc = $self->{'client'}->responseCode ();
+	$self->{'result'}->{'httpstatus'} = $rc;
+
+	if ($rc-$rc%100 != 200) {
+		$responsehash->{'reqstatus'} = 'CRIT';
+		$responsehash->{'httpstatus'} = $rc;
+	} else {
+		my $responseContent = $self->{'client'}->responseContent();
+		$responsehash = $self->_handleResponse($rc, $responseContent);
+	}
+	return dclone ($responsehash);
+
+}
+
+
 sub _handleResponse () {
 	my $self = shift;
+	my $rc = shift;
 	my $responseContent = shift;
 
 	my $responseJSON = ();
 	my $responsehash = ();
-	my $rc = 0;
 
+	$self->_logV2($responseContent);
 	$responseJSON = decode_json($responseContent) if $responseContent ne '';
 	my $reftype = reftype($responseJSON);
 	if (not defined $reftype) {
@@ -266,6 +315,19 @@ sub _handleResponse () {
 	$responsehash->{'reqstatus'} = 'OK';
 	$responsehash->{'httpstatus'} = $rc;
 	return $responsehash;
+}
+
+sub _logV1() {
+	my $self = shift;
+	my $msg = shift;
+
+	print "$msg\n" if ($self->verbose >= 1);
+}
+sub _logV2() {
+	my $self = shift;
+	my $obj = shift;
+
+	print Dumper ($obj) if ($self->verbose >= 2);
 }
 
 sub _logD() {

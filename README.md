@@ -34,6 +34,11 @@ instance via REST API
 
   "delete"      Sends a DELETE query. Similar to get
 
+  "postFile"    POST a file. Requet three arguments : endpoint, mime-type
+                and the appropriate data. Returns a hash reference.
+
+  "putFile"     Similar to postFile
+
 Returns a hash reference containing the data sent by Rundeck.
 See documentation for Rundeck's [API](https://docs.rundeck.com/docs/api/rundeck-api.html) and returned data
 

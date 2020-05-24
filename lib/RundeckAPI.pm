@@ -44,7 +44,7 @@ our @EXPORT_OK = qw(get post put delete postFile putFile);
 ## CONSTANTS
 #####
 our $TIMEOUT = 10;
-our $VERSION = "1.2.3";
+our $VERSION = "1.2.4";
 #####
 ## VARIABLES
 #####
@@ -61,7 +61,7 @@ sub new {
 		'login'		=> $args{'login'},
 		'token'		=> $args{'token'},
 		'password'	=> $args{'password'},
-		'debug'		=> $args{'debug'}, || 0
+		'debug'		=> $args{'debug'} || 0,
 		'verbose'	=> $args{'verbose'} || 0,
 		'result'	=> undef,
 	};
@@ -135,7 +135,7 @@ sub new {
 	$self->{'result'}->{'httpstatus'} = $rc;
 
 # done, bless object and return it
-	bless ($self, $class)
+	bless ($self, $class);
 	$self->_logV1 ("Connected to $self->{'url'}");
 	$self->_logD($self);
 	return $self;

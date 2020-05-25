@@ -322,13 +322,25 @@ sub _logV1() {
 	my $self = shift;
 	my $msg = shift;
 
-	print "$msg\n" if ($self->verbose >= 1);
+	if ($self->{'verbose'} >= 1) {
+		if (defined $msg) {
+			print "$msg\n";
+		} else {
+			print "unknown $!";
+		}
+	}
 }
 sub _logV2() {
 	my $self = shift;
 	my $obj = shift;
 
-	print Dumper ($obj) if ($self->verbose >= 2);
+	if ($self->{'verbose'} >= 2) {
+		if (defined $obj) {
+			print Dumper ($obj);
+		} else {
+			print "unknown objetc $!";
+		}
+	}
 }
 
 sub _logD() {

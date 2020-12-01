@@ -11,8 +11,6 @@ instance via REST API
     my $api = RundeckAPI->new(
         'url'           => "https://my.rundeck.instance:4440",
         'login'         => "admin",
-        'password'      => "passwd",
-    # OR token, takes precedence
         'token'         => <token as generated with GUI, as an admin>
         'debug'         => 1,
         'proxy'         => "http://proxy.mycompany.com/",
@@ -23,7 +21,9 @@ instance via REST API
 
 # METHODS
   "new"         Returns an object authenticated and connected to a Rundeck
-                Instance
+                Instance. The field 'login' is not stricto sensu required,
+                but it is a good security mesure to check if login/token match
+
 
   "get"         Sends a GET query. Request one argument, the enpoint to the
                 API. Returns a hash reference

@@ -28,7 +28,7 @@ package RundeckAPI;
 use strict;
 use warnings;
 use POSIX qw(setlocale strftime);
-use File::Basename;			# get basename()
+use File::Basename;
 use LWP::UserAgent;
 use Data::Dumper;
 use HTTP::Cookies;
@@ -44,7 +44,7 @@ our @EXPORT_OK = qw(get post put delete postFile putFile);
 ## CONSTANTS
 #####
 our $TIMEOUT = 10;
-our $VERSION = "1.2.6";
+our $VERSION = "1.2.8";
 #####
 ## VARIABLES
 #####
@@ -55,12 +55,11 @@ our $VERSION = "1.2.6";
 
 sub new {
 	my($class, %args) = @_;
-	my $rc=0;
+	my $rc = 403;
 	my $self = {
 		'url'		=> $args{'url'},
 		'login'		=> $args{'login'},
 		'token'		=> $args{'token'},
-		'password'	=> $args{'password'},
 		'debug'		=> $args{'debug'} || 0,
 		'verbose'	=> $args{'verbose'} || 0,
 		'result'	=> undef,
@@ -95,44 +94,36 @@ sub new {
 	$client->addHeader ("Accept", "application/json");
 	$self->{'client'} = $client;
 
-# if we have a token, use it
 	if (defined $self->{'token'}) {
 		$client->addHeader ("X-Rundeck-Auth-Token", $self->{'token'});
 		$client->GET("/api/21/tokens/$self->{'login'}");
-# check if token match id, just to be sure
+# check if token match id
 		my $authJSON = $client->responseContent();
 		$rc = $client->responseCode ();
-		if ($rc-$rc%100 == 200) {
+		if (($rc-$rc%100 == 200) && (index($client->{'_res'}{'_content'}, 'alert alert-danger') == -1)) {
 			my $jHash = decode_json ($authJSON);
 			if (defined $jHash->[0]) {
-				if ($jHash->[0]->{'user'} ne $self->{'login'}) {
-	# should this really happen ?
+				my $connOK = 0;
+				foreach my $tokenInfo (@{$jHash}) {
+					if ($tokenInfo->{'user'} eq $self->{'login'}) {
+						$connOK = 1;
+						last;
+					}
+				}
+				if ($connOK) {
+					$rc = 200;
+				} else {
 					$rc = 403;
 				}
-				else {
-					$rc = 200;
-				}
-			} else {
-	# empty hash, but res = OK
-				$rc = 200;
-			}
-		}
-	} else {
-# post user/passwd
-		$client->POST(
-			"j_security_check",
-			"j_username=$self->{'login'}" . "&" . "j_password=$self->{'password'}",
-		);
-		$rc = $client->responseCode ();
-	}
-	my %hash = ();
 
-## Dirty job, but Rundeck doent follow the REST norm, returning 200 even if auth fails
-## However, this is safe, since if string not found it will fail at get/put/whatever time
-	if (index($client->{'_res'}{'_content'}, 'alert alert-danger') != -1) {
-		$rc = 403;
+			} else {
+				$rc = 403;
+			}
+		} else {
+			$rc = 403;
+		}
 	}
-	if ($rc != 200) {
+	if ($rc-$rc%100 != 200) {
 		$self->{'result'}->{'reqstatus' } = 'UNKN';
 	} else {
 		$self->{'result'}->{'reqstatus'} = 'OK';
@@ -141,7 +132,7 @@ sub new {
 
 # done, bless object and return it
 	bless ($self, $class);
-	$self->_logV1 ("Connected to $self->{'url'}");
+	$self->_logV1 ("Connected to $self->{'url'}") if ($rc-$rc%100 == 200);
 	$self->_logD($self);
 	return $self;
 }
@@ -377,8 +368,6 @@ RundeckAPI - simplifies authenticate, connect, queries to a Rundeck instance via
 	my $api = RundeckAPI->new(
 		'url'		=> "https://my.rundeck.instance:4440",
 		'login'		=> "admin",
-		'password'	=> "passwd",
-	# OR token, takes precedence
 		'token'		=> <token as generated with GUI, as an admin>
 		'debug'		=> 1,
  		'proxy'		=> "http://proxy.mycompany.com/",
@@ -393,7 +382,8 @@ RundeckAPI - simplifies authenticate, connect, queries to a Rundeck instance via
 
 =item C<new>
 
-Returns an object authenticated and connected to a Rundeck Instance
+Returns an object authenticated and connected to a Rundeck Instance.
+The field 'login' is not stricto sensu required, but it is a good security mesure to check if login/token match
 
 =item C<get>
 

@@ -38,13 +38,13 @@ use JSON;
 use Storable qw(dclone);
 use Exporter qw(import);
 
-our @EXPORT_OK = qw(get post put delete postFile putFile);
+our @EXPORT_OK = qw(get post put delete postData putData);
 
 #####
 ## CONSTANTS
 #####
 our $TIMEOUT = 10;
-our $VERSION = "1.2.8";
+our $VERSION = "1.3.0";
 #####
 ## VARIABLES
 #####
@@ -63,7 +63,9 @@ sub new {
 		'debug'		=> $args{'debug'} || 0,
 		'verbose'	=> $args{'verbose'} || 0,
 		'result'	=> undef,
+		'timeout'	=> $args{'timeout'},
 	};
+	$self->{'timeout'} = $TIMEOUT if not (defined  $args{'timeout'});
 # create and store a cookie jar
 	my $cookie_jar = HTTP::Cookies->new(
 		autosave		=> 1,
@@ -75,11 +77,11 @@ sub new {
 	my($prog, $dirs, $suffix) = fileparse($0, (".pl"));
 	my $ua = LWP::UserAgent->new(
 		'agent'			=> $prog . "-" . $VERSION,
-		'timeout'		=> $TIMEOUT,
+		'timeout'		=> $self->{'timeout'},
 		'cookie_jar'	=> $self->{'cookie_jar'},
 		'requests_redirectable' => ['GET', 'HEAD', 'POST', 'PUT', 'DELETE'],
 		);
-	$ua->show_progress ($args{'debug'});
+	$ua->show_progress ($args{'verbose'});
  	$ua->proxy( ['http', 'https'], $args{'proxy'}) if (defined $args{'proxy'});
 	$self->{'ua'} = $ua;
 
@@ -156,13 +158,9 @@ sub get (){		# endpoint
 		$responsehash->{'reqstatus'} = 'CRIT';
 		$responsehash->{'httpstatus'} = $rc;
 	} else {
+		my $responseType = $self->{'client'}->responseHeader('content-type');
 		my $responseContent = $self->{'client'}->responseContent();
-	# handle special case where test is "ping", response is "pong" in plain text, not a json
-		if ($endpoint =~ /ping/) {
-			$responsehash->{'reqstatus'} = $responseContent =~ /pong/ ? 'OK' : 'CRIT';
-			return dclone ($responsehash);
-		}
-		$responsehash = $self->_handleResponse($rc, $responseContent);
+		$responsehash = $self->_handleResponse($rc, $responseType, $responseContent);
 	}
 	return dclone ($responsehash);
 }
@@ -184,8 +182,9 @@ sub post(){		# endpoint, json
 		$responsehash->{'reqstatus'} = 'CRIT';
 		$responsehash->{'httpstatus'} = $rc;
 	} else {
+		my $responseType = $self->{'client'}->responseHeader('content-type');
 		my $responseContent = $self->{'client'}->responseContent();
-		$responsehash = $self->_handleResponse($rc, $responseContent);
+		$responsehash = $self->_handleResponse($rc, $responseType, $responseContent);
 	}
 	return dclone ($responsehash);
 }
@@ -207,8 +206,9 @@ sub put(){		# endpoint, json
 		$responsehash->{'reqstatus'} = 'CRIT';
 		$responsehash->{'httpstatus'} = $rc;
 	} else {
+		my $responseType = $self->{'client'}->responseHeader('content-type');
 		my $responseContent = $self->{'client'}->responseContent();
-		$responsehash = $self->_handleResponse($rc, $responseContent);
+		$responsehash = $self->_handleResponse($rc, $responseType, $responseContent);
 	}
 	return dclone ($responsehash);
 }
@@ -228,13 +228,23 @@ sub delete () {		# endpoint
 		$responsehash->{'reqstatus'} = 'CRIT';
 		$responsehash->{'httpstatus'} = $rc;
 	} else {
+		my $responseType = $self->{'client'}->responseHeader('content-type');
 		my $responseContent = $self->{'client'}->responseContent();
-		$responsehash = $self->_handleResponse($rc, $responseContent);
+		$responsehash = $self->_handleResponse($rc, $responseType, $responseContent);
 	}
 	return dclone ($responsehash);
 }
 
-sub postFile() {		# endpoint, mimetype, data
+sub postFile() {	# for compatibility only
+	my $self = shift;
+	my $endpoint = shift;
+	my $mimetype = shift;
+	my $data = shift;
+
+	reeturn $self->postData($endpoint, $mimetype, $data);
+
+}
+sub postData() {		# endpoint, mimetype, data
 	my $self = shift;
 	my $endpoint = shift;
 	my $mimetype = shift;
@@ -252,14 +262,23 @@ sub postFile() {		# endpoint, mimetype, data
 		$responsehash->{'reqstatus'} = 'CRIT';
 		$responsehash->{'httpstatus'} = $rc;
 	} else {
+		my $responseType = $self->{'client'}->responseHeader('content-type');
 		my $responseContent = $self->{'client'}->responseContent();
-		$responsehash = $self->_handleResponse($rc, $responseContent);
+		$responsehash = $self->_handleResponse($rc, $responseType, $responseContent);
 	}
 	return dclone ($responsehash);
-
 }
 
-sub putFile() {		# endpoint, mimetype, data
+sub putFile() {	# for compatibility only, must use a ... what ? File path or file handle ?
+	my $self = shift;
+	my $endpoint = shift;
+	my $mimetype = shift;
+	my $data = shift;
+
+	reeturn $self->putData($endpoint, $mimetype, $data);
+
+}
+sub putData() {		# endpoint, mimetype, data
 	my $self = shift;
 	my $endpoint = shift;
 	my $mimetype = shift;
@@ -277,40 +296,51 @@ sub putFile() {		# endpoint, mimetype, data
 		$responsehash->{'reqstatus'} = 'CRIT';
 		$responsehash->{'httpstatus'} = $rc;
 	} else {
+		my $responseType = $self->{'client'}->responseHeader('content-type');
 		my $responseContent = $self->{'client'}->responseContent();
-		$responsehash = $self->_handleResponse($rc, $responseContent);
+		$responsehash = $self->_handleResponse($rc, $responseType, $responseContent);
 	}
 	return dclone ($responsehash);
-
 }
 
 
 sub _handleResponse () {
 	my $self = shift;
 	my $rc = shift;
+	my $responseType = shift;
 	my $responseContent = shift;
 
 	my $responseJSON = ();
 	my $responsehash = ();
-
-	$self->_logV2($responseContent);
-	$responseJSON = decode_json($responseContent) if $responseContent ne '';
-	my $reftype = reftype($responseJSON);
-	if (not defined $reftype) {
-		$self->_bomb("Can't decode undef type");
-	} elsif ($reftype eq 'ARRAY') {
-
-		$responsehash->{'arraycount'} = $#$responseJSON+1;
-		for (my $i = 0; $i <= $#$responseJSON; $i++) {
-			$responsehash->{$i} = $responseJSON->[$i];
-		}
-	} elsif ($reftype eq 'SCALAR') {
-		$self->_bomb("Can't decode scalar type");
-	} elsif ($reftype eq 'HASH') {
-		$responsehash = dclone ($responseJSON);
-	}
 	$responsehash->{'reqstatus'} = 'OK';
-	$responsehash->{'httpstatus'} = $rc;
+	$responsehash->{'httpstatus'} = 200;
+
+	# is data JSON ?
+	if ($responseType eq 'application/json') {
+		$self->_logV2($responseContent);
+		$responseJSON = decode_json($responseContent) if $responseContent ne '';
+		my $reftype = reftype($responseJSON);
+		if (not defined $reftype) {
+			$self->_bomb("Can't decode undef type");
+		} elsif ($reftype eq 'ARRAY') {
+
+			$responsehash->{'arraycount'} = $#$responseJSON+1;
+			for (my $i = 0; $i <= $#$responseJSON; $i++) {
+				$responsehash->{$i} = $responseJSON->[$i];
+			}
+		} elsif ($reftype eq 'SCALAR') {
+			$self->_bomb("Can't decode scalar type");
+		} elsif ($reftype eq 'HASH') {
+			$responsehash = dclone ($responseJSON);
+		}
+		$responsehash->{'reqstatus'} = 'OK';
+		$responsehash->{'httpstatus'} = $rc;
+	} elsif ($responseType eq 'text/plain') {
+		$self->_logV2($responseContent);
+		$responsehash->{'content'} = $responseContent;
+	} else { # assume binary, like text, but do not log
+		$responsehash->{'content'} = $responseContent;
+	}
 	return $responsehash;
 }
 
@@ -350,7 +380,7 @@ sub _bomb() {
 	my $self = shift;
 	my $msg = shift;
 
-	$msg .= "\nReport this to xavier.humbert\@ac-nancy-metz.fr";
+	$msg .= "\nReport this to xavier.humbert\@ac-nancy-metz.fr with detail of the REST call you made";
 	die $msg;
 }
 1;
@@ -401,7 +431,26 @@ Sends a PUT query. Similar to post
 
 Sends a DELETE query. Similar to get
 
+=item C<postData>
+
+POST some data. Request three arguments : endpoint, mime-type and the appropriate data. Returns a hash reference.
+
+=item C<putData>
+
+PUT some data. Similar to postData
+
 =back
+
+=head1 RETURN VALUE
+
+Returns a hash reference containing the data sent by Rundeck.
+
+The is structured as the following :
+
+the fields `httpstatus` (200, 403, etc) and `requstatus` (OK, CRIT) are always present.
+
+the content is in the hash itself if the data type is JSON, else in the field `content` if we have text or binary
+
 
 =head1 SEE ALSO
 

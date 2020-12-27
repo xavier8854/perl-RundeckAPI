@@ -2,8 +2,12 @@ Changes
 lib/RundeckAPI.pm
 LICENSE
 Makefile.PL
-MANIFEST
+MANIFEST			This list of files
 README
 README.md
 script/main.pl
+t/00-load.t
 t/diskchk.t
+t/manifest.t
+t/pod-coverage.t
+t/pod.t

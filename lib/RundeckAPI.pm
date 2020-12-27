@@ -38,13 +38,13 @@ use JSON;
 use Storable qw(dclone);
 use Exporter qw(import);
 
-our @EXPORT_OK = qw(get post put delete postData putData);
+our @EXPORT_OK = qw(get post put delete postData putData postFile putFile);
 
 #####
 ## CONSTANTS
 #####
 our $TIMEOUT = 10;
-our $VERSION = "1.3.0";
+our $VERSION = "1.3.3";
 #####
 ## VARIABLES
 #####
@@ -63,9 +63,8 @@ sub new {
 		'debug'		=> $args{'debug'} || 0,
 		'verbose'	=> $args{'verbose'} || 0,
 		'result'	=> undef,
-		'timeout'	=> $args{'timeout'},
+		'timeout'	=> $args{'timeout'} || $TIMEOUT,
 	};
-	$self->{'timeout'} = $TIMEOUT if not (defined  $args{'timeout'});
 # create and store a cookie jar
 	my $cookie_jar = HTTP::Cookies->new(
 		autosave		=> 1,
@@ -88,7 +87,7 @@ sub new {
 # connect to the client
 	my $client = REST::Client->new(
 		host		=> $self->{'url'},
-		timeout		=> 10,
+		timeout		=> $self->{'timeout'},
 		useragent	=> $ua,
 		follow		=> 1,
 	);
@@ -316,26 +315,27 @@ sub _handleResponse () {
 	$responsehash->{'httpstatus'} = 200;
 
 	# is data JSON ?
-	if ($responseType eq 'application/json') {
+	if ($responseType =~ /^application\/json.*/) {
 		$self->_logV2($responseContent);
 		$responseJSON = decode_json($responseContent) if $responseContent ne '';
 		my $reftype = reftype($responseJSON);
 		if (not defined $reftype) {
 			$self->_bomb("Can't decode undef type");
 		} elsif ($reftype eq 'ARRAY') {
-
-			$responsehash->{'arraycount'} = $#$responseJSON+1;
+			$self->_logV2("copying array");
+			$responsehash->{'content'}{'arraycount'} = $#$responseJSON+1;
 			for (my $i = 0; $i <= $#$responseJSON; $i++) {
-				$responsehash->{$i} = $responseJSON->[$i];
+				$responsehash->{'content'}{$i} = $responseJSON->[$i];
 			}
 		} elsif ($reftype eq 'SCALAR') {
 			$self->_bomb("Can't decode scalar type");
 		} elsif ($reftype eq 'HASH') {
-			$responsehash = dclone ($responseJSON);
+			$self->_logV2("copying hash");
+			$responsehash->{'content'} = $responseJSON;
 		}
 		$responsehash->{'reqstatus'} = 'OK';
 		$responsehash->{'httpstatus'} = $rc;
-	} elsif ($responseType eq 'text/plain') {
+	} elsif ($responseType =~ /text\/plain.*/) {
 		$self->_logV2($responseContent);
 		$responsehash->{'content'} = $responseContent;
 	} else { # assume binary, like text, but do not log
@@ -439,17 +439,25 @@ POST some data. Request three arguments : endpoint, mime-type and the appropriat
 
 PUT some data. Similar to postData
 
+=item C<postFile>
+
+Alias for compatibility for postData
+
+=item C<putFile>
+
+Alias for compatibility for putData
+
 =back
 
 =head1 RETURN VALUE
 
 Returns a hash reference containing the data sent by Rundeck.
 
-The is structured as the following :
+The returned value is structured like the following :
 
 the fields `httpstatus` (200, 403, etc) and `requstatus` (OK, CRIT) are always present.
 
-the content is in the hash itself if the data type is JSON, else in the field `content` if we have text or binary
+the field `content` is a hash (if the mime-type of the result is JSON), text or binary
 
 
 =head1 SEE ALSO

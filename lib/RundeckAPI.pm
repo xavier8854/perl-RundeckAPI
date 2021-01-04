@@ -44,7 +44,7 @@ our @EXPORT_OK = qw(get post put delete postData putData postFile putFile);
 ## CONSTANTS
 #####
 our $TIMEOUT = 10;
-our $VERSION = "1.3.3";
+our $VERSION = "1.3.4";
 #####
 ## VARIABLES
 #####

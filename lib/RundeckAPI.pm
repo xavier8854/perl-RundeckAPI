@@ -44,7 +44,7 @@ our @EXPORT_OK = qw(get post put delete postData putData postFile putFile);
 ## CONSTANTS
 #####
 our $TIMEOUT = 10;
-our $VERSION = "1.3.4.1";
+our $VERSION = "1.3.5.0";
 #####
 ## VARIABLES
 #####
@@ -149,6 +149,12 @@ sub get (){		# endpoint
 	my $responsehash = ();
 	my $rc = 0;
 
+	# Handle secial case where endpoint is /api/XX/job, returns YAML
+	if ($endpoint =~ /api\/[0-9]+\/job/) {
+		$endpoint .= '?format=yaml';
+
+	}
+
 	$self->{'client'}->GET($endpoint);
 	$rc = $self->{'client'}->responseCode ();
 	$responsehash->{'httpstatus'} = $rc;
@@ -160,6 +166,7 @@ sub get (){		# endpoint
 		my $responseType = $self->{'client'}->responseHeader('content-type');
 		my $responseContent = $self->{'client'}->responseContent();
 		$responsehash = $self->_handleResponse($rc, $responseType, $responseContent);
+
 	}
 	return dclone ($responsehash);
 }

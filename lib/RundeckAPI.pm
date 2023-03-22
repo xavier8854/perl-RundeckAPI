@@ -152,7 +152,6 @@ sub get (){		# endpoint
 	# Handle secial case where endpoint is /api/XX/job, returns YAML
 	if ($endpoint =~ /api\/[0-9]+\/job/) {
 		$endpoint .= '?format=yaml';
-
 	}
 
 	$self->{'client'}->GET($endpoint);

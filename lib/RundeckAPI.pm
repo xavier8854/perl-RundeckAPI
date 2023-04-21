@@ -44,7 +44,7 @@ our @EXPORT_OK = qw(get post put delete postData putData);
 ## CONSTANTS
 #####
 our $TIMEOUT = 10;
-our $VERSION = "1.3.5.0";
+our $VERSION = "1.3.6.0";
 #####
 ## VARIABLES
 #####
@@ -59,6 +59,7 @@ sub new {
 	my $self = {
 		'url'		=> $args{'url'},
 		'login'		=> $args{'login'},
+		'password'	=> $args{'password'},
 		'token'		=> $args{'token'},
 		'debug'		=> $args{'debug'} || 0,
 		'verbose'	=> $args{'verbose'} || 0,
@@ -95,6 +96,7 @@ sub new {
 	$client->addHeader ("Accept", "application/json");
 	$self->{'client'} = $client;
 
+# if we have a token, use it
 	if (defined $self->{'token'}) {
 		$client->addHeader ("X-Rundeck-Auth-Token", $self->{'token'});
 		$client->GET("/api/21/tokens/$self->{'login'}");
@@ -123,6 +125,13 @@ sub new {
 		} else {
 			$rc = 403;
 		}
+	} else {
+# post user/passwd
+		$client->POST(
+			"j_security_check",
+			"j_username=$self->{'login'}" . "&" . "j_password=$self->{'password'}",
+		);
+		$rc = $client->responseCode ();
 	}
 	if ($rc-$rc%100 != 200) {
 		$self->{'result'}->{'reqstatus' } = 'UNKN';

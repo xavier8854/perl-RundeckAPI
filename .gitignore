@@ -7,6 +7,11 @@
 *.pm.tdy
 *.bs
 
+# Doxygen
+*.cpp
+doc/
+Doxyfile*
+
 # Devel::Cover
 cover_db/
 

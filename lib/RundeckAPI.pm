@@ -49,7 +49,7 @@ our @EXPORT_OK = qw(get post put delete postData putData);
 ## CONSTANTS
 #####
 our $TIMEOUT = 10;
-our $VERSION = "1.3.7.0";
+our $VERSION = "1.3.7.1";
 #####
 ## VARIABLES
 #####
@@ -160,9 +160,10 @@ sub get (){		# endpoint
 	my $rc = 0;
 
 	# Handle secial case where endpoint is /api/XX/job, returns YAML
-	if ($endpoint =~ /api\/[0-9]+\/job/) {
-		$endpoint .= '?format=yaml';
-	}
+	# Obsolete
+	#~ if ($endpoint =~ /api\/[0-9]+\/job/) {
+		#~ $endpoint .= '?format=yaml';
+	#~ }
 
 	$self->{'client'}->GET($endpoint);
 	$rc = $self->{'client'}->responseCode ();

@@ -13,11 +13,12 @@ instance via REST API
         'login'         => "admin",
         'token'         => <token as generated with GUI, as an admin>
         'debug'         => 1,
+        'apivers'       => 42,
         'proxy'         => "http://proxy.mycompany.com/",
     );
-    my $hashRef = $api->get("/api/27/system/info");
+    my $hashRef = $api->get("system/info");
     my $json = '{some: value}';
-    $hashRef = $api->put(/api/27/endpoint_for_put, $json);
+    $hashRef = $api->put("endpoint_for_put", $json);
 
 # METHODS
 
@@ -40,10 +41,6 @@ instance via REST API
                 and the appropriate data. Returns a hash reference.
 
   "putData"     PUT some data. Similar to postData
-
-  "postFile"    Alias for compatibility for postData
-
-  "putFile"     Alias for compatibility for putData
 
 
 # RETURN VALUE

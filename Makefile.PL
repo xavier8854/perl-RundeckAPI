@@ -21,7 +21,9 @@ WriteMakefile (
 		'JSON'					=> 2.97,
 	},
 	TEST_REQUIRES => {
-			'Test::More'		=> 1.300,
+			'Test::More'			=> 1.300,
+			'Test::Distribution'	=> 2.0,
+			'Test::CheckManifest'	=> 1.4,
 	},
     dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean => { FILES => 'RundeckAPI-*' },

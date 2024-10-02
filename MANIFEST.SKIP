@@ -1,0 +1,5 @@
+doc/
+.git/
+.gitignore
+Doxyfile
+MANIFEST.SKIP
